@@ -281,6 +281,19 @@ KeySettings Scanner::GetKeySettings() const
 }
 
 //////////////////////////////////////////////////////////////////////////
+OpeningMessage Scanner::GetOpeningMessage() const
+{
+	assert(m_inProgrammingMode);
+	const auto response = IssueCommand("OMS\r", 4);
+	return OpeningMessage{
+		response[0],
+		response[1],
+		response[2],
+		response[3]
+	};
+}
+
+//////////////////////////////////////////////////////////////////////////
 SystemSettings Scanner::GetSystemSettings() const
 try
 {
@@ -288,9 +301,10 @@ try
 	const auto backlight = GetBacklightSettings();
 	const auto battery = GetBatterySettings();
 	const auto keys = GetKeySettings();
+	const auto message = GetOpeningMessage();
 	ExitProgrammingMode();
 
-	return SystemSettings{ backlight, battery, keys };
+	return SystemSettings{ backlight, battery, keys, message };
 }
 catch (const std::exception&)
 {

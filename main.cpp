@@ -65,6 +65,9 @@ public slots:
 			log.Info() << "\t- battery charge time: " << sysSettings.battery.chargeTime;
 			log.Info() << "\t- backlight color: " << sysSettings.backlight.color;
 			log.Info() << "\t- backlight event: " << sysSettings.backlight.event;
+			log.Info() << "\t- opening message: ";
+			for (const auto& line : sysSettings.openingMessage)
+				log.Info() << "\t-\t" << line;
 			emit finished();
 		}
 		catch (const std::exception& e)
