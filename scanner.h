@@ -7,6 +7,7 @@
 #ifndef KVASIR_SCANNER_H_INCLUDED
 #define KVASIR_SCANNER_H_INCLUDED
 
+#include <array>
 #include <memory>
 #include "uniden.h"
 
@@ -20,19 +21,32 @@ class Scanner
 {
 	struct Impl;
 	std::unique_ptr<Impl> m_impl;
+	volatile bool m_inProgrammingMode;
 
-	std::string IssueCommand(const std::string& command) const;
+	
+	void EnterProgrammingMode() const;
+	void ExitProgrammingMode() const;
+
+	Backlight GetBacklightSettings() const;
+	Battery GetBatterySettings() const;
+	KeySettings GetKeySettings() const;
+	OpeningMessage GetOpeningMessage() const;
 
 public:
+	using Response = std::vector<std::string>;
+
 	Scanner();
 	~Scanner();
 
 	void Connect(const Device& device);
 	void Disconnect();
 
+	Response IssueCommand(const std::string& command, size_t responseSize) const;
+
 	std::string GetModel() const;
 	std::string GetFirmwareVersion() const;
 	ReceptionStatus GetReceptionStatus() const;
+	SystemSettings GetSystemSettings() const;
 };
 
 } // namespace kvasir

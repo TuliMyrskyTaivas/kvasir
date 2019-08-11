@@ -36,6 +36,7 @@ Scanner::~Scanner() = default;
 //////////////////////////////////////////////////////////////////////////
 Scanner::Scanner()
 	: m_impl(std::make_unique<Impl>())
+	, m_inProgrammingMode(false)
 {}
 
 //////////////////////////////////////////////////////////////////////////
@@ -86,6 +87,9 @@ std::vector<std::string> SplitString(const std::string& str)
 	std::sregex_token_iterator end;
 
 	std::vector<std::string> result;
+	if (',' == str.front())
+		result.emplace_back(std::string());
+
 	for (; i != end; ++i)
 		result.push_back(*i);
 
@@ -122,29 +126,70 @@ void Scanner::Disconnect()
 }
 
 //////////////////////////////////////////////////////////////////////////
-std::string Scanner::IssueCommand(const std::string& command) const
+Scanner::Response Scanner::IssueCommand(const std::string& command, size_t responseSize) const
 {
 	// All commands are 3 letters sequences
 	const std::string_view cmdName(command.data(), 3);
 
 	m_impl->port.write(command.c_str());
-	m_impl->port.waitForReadyRead();
-	const auto response = m_impl->port.readAll();
-	if (response.size() < 4 || std::string_view(response.data(), 3) != cmdName)
+
+	// Wait for the end of data (all responses are finished with '\r')
+	QByteArray buf;
+	do
+	{
+		m_impl->port.waitForReadyRead();
+		buf += m_impl->port.readAll();
+	} while (buf.back() != '\r');	
+	
+	// Check response format: it should be suffixed with the command's name
+	if (buf.size() < 4 || std::string_view(buf.data(), 3) != cmdName)
 		throw std::runtime_error("invalid " + std::string(cmdName) + " response");
-	return std::string(std::next(response.cbegin(), 4), response.cend());
+
+	// Build the list of response values
+	const std::string response(std::next(buf.cbegin(), 4), std::prev(buf.cend()));
+	const Response result = SplitString(response);
+	if (responseSize != result.size())
+		throw std::runtime_error("invalid " + std::string(cmdName) + " response: " + response + std::to_string(result.size()));
+
+	return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+void Scanner::EnterProgrammingMode() const
+{
+	assert(m_inProgrammingMode == false);
+	Logger::GetInstance().Debug() << "Entering programming mode";
+
+	const auto result = IssueCommand("PRG\r", 1);
+	if ("OK" != result.front())
+		throw std::runtime_error("failed to enter programming mode: " + result.front());
+	
+	const_cast<bool&>(m_inProgrammingMode) = true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+void Scanner::ExitProgrammingMode() const
+{
+	assert(m_inProgrammingMode == true);
+	Logger::GetInstance().Debug() << "Leaving programming mode";
+
+	const auto result = IssueCommand("EPG\r", 1);
+	if ("OK" != result.front())
+		throw std::runtime_error("failed to exit programming mode: " + result.front());
+
+	const_cast<bool&>(m_inProgrammingMode) = false;
 }
 
 //////////////////////////////////////////////////////////////////////////
 std::string Scanner::GetModel() const
 {
-	return IssueCommand("MDL\r");	
+	return IssueCommand("MDL\r", 1).front();
 }
 
 //////////////////////////////////////////////////////////////////////////
 std::string Scanner::GetFirmwareVersion() const
 {
-	return IssueCommand("VER\r");	
+	return IssueCommand("VER\r", 1).front();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -168,52 +213,91 @@ Modulation ModFromString(const std::string& mod)
 //////////////////////////////////////////////////////////////////////////
 ReceptionStatus Scanner::GetReceptionStatus() const
 {
-	const std::string cmdResult = IssueCommand("GLG\r");
-	Logger::GetInstance().Info() << "Scanner result: " << cmdResult;
-	const auto result = SplitString(cmdResult);	
+	const auto result = IssueCommand("GLG\r", 12);		
 
-	ReceptionStatus status;
+	ReceptionStatus status{};
 	if (result.front().empty())
 		return status;
 
-	status.freq = result.front();
-	if (result.size() > 1)
-		status.mod = ModFromString(result[1]);
-	if (result.size() > 2)
-		status.att = static_cast<bool>(std::stoi(result[2]));
-	if (result.size() > 3)
-		status.code = static_cast<CtcssDcsCode>(std::stoi(result[3]));
-	if (result.size() > 4)
-		status.site = result[4];
-	if (result.size() > 5)
-		status.group = result[5];
-	if (result.size() > 6)
-		status.channel = result[6];
-	if (result.size() > 7)
-		status.squelch = static_cast<bool>(std::stoi(result[7]));
-	if (result.size() > 8)
-		status.mute = static_cast<bool>(std::stoi(result[8]));
-	if (result.size() > 9)
-	{
-		const auto& systemTag = result[9];
-		if ("NONE" != systemTag)
-			status.systemTag = std::stoi(systemTag);
-	}
-	if (result.size() > 10)
-	{
-		const auto& channelTag = result[10];
-		if ("NONE" != channelTag)
-			status.channelTag = std::stoi(channelTag);
-	}
-	if (result.size() > 11)
-	{
-		const auto& p25nac = result[11];
-		if ("NONE" != p25nac)
-			status.p25Nac = std::stoi(p25nac);
-	}
+	const auto& systemTag = result[9];
+	const auto& channelTag = result[10];
+	const auto& p25nac = result[11];
 
+	status.freq = result.front();	
+	status.mod = ModFromString(result[1]);
+	status.att = static_cast<bool>(std::stoi(result[2]));
+	status.code = static_cast<CtcssDcsCode>(std::stoi(result[3]));
+	status.site = result[4];
+	status.group = result[5];
+	status.channel = result[6];
+	status.squelch = static_cast<bool>(std::stoi(result[7]));
+	status.mute = static_cast<bool>(std::stoi(result[8]));
+	
+	if ("NONE" != systemTag)
+		status.systemTag = std::stoi(systemTag);
+		
+	if ("NONE" != channelTag)
+		status.channelTag = std::stoi(channelTag);
+		
+	if ("NONE" != p25nac)
+		status.p25Nac = std::stoi(p25nac);
+	
 	return status;
 }
 
+//////////////////////////////////////////////////////////////////////////
+Backlight Scanner::GetBacklightSettings() const
+{
+	assert(m_inProgrammingMode);
+	const auto response = IssueCommand("BLT\r", 3);	
+	return Backlight{
+		response[0],
+		response[1],
+		std::stoi(response[2])
+	};
+}
+
+//////////////////////////////////////////////////////////////////////////
+Battery Scanner::GetBatterySettings() const
+{
+	assert(m_inProgrammingMode);
+	const auto response = IssueCommand("BSV\r", 2);	
+	return Battery{
+		static_cast<bool>(std::stoi(response[0])),
+		std::stoi(response[1])
+	};
+}
+
+//////////////////////////////////////////////////////////////////////////
+KeySettings Scanner::GetKeySettings() const
+{
+	assert(m_inProgrammingMode);
+	const auto response = IssueCommand("KBP\r", 3);	
+	return KeySettings{
+		std::stoi(response[0]),
+		static_cast<bool>(std::stoi(response[1])),
+		static_cast<bool>(std::stoi(response[2]))
+	};
+}
+
+//////////////////////////////////////////////////////////////////////////
+SystemSettings Scanner::GetSystemSettings() const
+try
+{
+	EnterProgrammingMode();
+	const auto backlight = GetBacklightSettings();
+	const auto battery = GetBatterySettings();
+	const auto keys = GetKeySettings();
+	ExitProgrammingMode();
+
+	return SystemSettings{ backlight, battery, keys };
+}
+catch (const std::exception&)
+{
+	if (m_inProgrammingMode)
+		ExitProgrammingMode();
+
+	throw;
+}
 
 } // namespace kvasir

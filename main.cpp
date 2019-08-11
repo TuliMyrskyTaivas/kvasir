@@ -58,6 +58,13 @@ public slots:
 
 			const auto status = scanner.GetReceptionStatus();
 			log.Info() << "Current channel: " << status.channel;
+
+			const auto sysSettings = scanner.GetSystemSettings();
+			log.Info() << "System settings:";
+			log.Info() << "\t- battery save: " << (sysSettings.battery.batterySave ? "on" : "off");
+			log.Info() << "\t- battery charge time: " << sysSettings.battery.chargeTime;
+			log.Info() << "\t- backlight color: " << sysSettings.backlight.color;
+			log.Info() << "\t- backlight event: " << sysSettings.backlight.event;
 			emit finished();
 		}
 		catch (const std::exception& e)

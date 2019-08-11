@@ -197,6 +197,36 @@ struct ReceptionStatus
 	bool mute = false;                      // Mute status (on/off)
 };
 
+struct Backlight
+{
+	std::string event;                      // Event for activation of backlight
+	std::string color;                      // Backlight color
+	int dimmer = -1;                        // Backlight dimmer (1:Low, 2:Middle, 3:High)
+};
+
+struct Battery
+{
+	bool batterySave = false;
+	int chargeTime = -1;
+};
+
+struct KeySettings
+{
+	int beepLevel = 1;                      // Beep level (0:Auto, 1-15: volume, 99:off)
+	bool keyLock = false;                   // Key Lock status
+	bool keySafe = false;                   // Key Safe status
+};
+
+using OpeningMessage = std::array<std::string, 4>;
+
+struct SystemSettings
+{
+	Backlight backlight;
+	Battery battery;
+	KeySettings keys;
+	OpeningMessage openingMessage;
+};
+
 } // namespace kvasir
 
 #endif // KVASIR_UNIDEN_H_INCLUDED
