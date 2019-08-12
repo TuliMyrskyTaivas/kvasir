@@ -27,6 +27,8 @@ set (SOURCES
     main.cpp
 	scanner.h
     scanner.cpp
+	system_settings.h
+	system_settings.cpp
     uniden.h
 )
 

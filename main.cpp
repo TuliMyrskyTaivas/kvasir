@@ -7,6 +7,7 @@
 #include "config.h"
 #include "logger.h"
 #include "scanner.h"
+#include "system_settings.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QTimer>
@@ -59,14 +60,15 @@ public slots:
 			const auto status = scanner.GetReceptionStatus();
 			log.Info() << "Current channel: " << status.channel;
 
-			const auto sysSettings = scanner.GetSystemSettings();
+			kvasir::SystemSettings sysSettings;
+			sysSettings.Load(scanner);
 			log.Info() << "System settings:";
-			log.Info() << "\t- battery save: " << (sysSettings.battery.batterySave ? "on" : "off");
-			log.Info() << "\t- battery charge time: " << sysSettings.battery.chargeTime;
-			log.Info() << "\t- backlight color: " << sysSettings.backlight.color;
-			log.Info() << "\t- backlight event: " << sysSettings.backlight.event;
+			log.Info() << "\t- battery save: " << (sysSettings.Battery().batterySave ? "on" : "off");
+			log.Info() << "\t- battery charge time: " << sysSettings.Battery().chargeTime;
+			log.Info() << "\t- backlight color: " << sysSettings.Backlight().color;
+			log.Info() << "\t- backlight event: " << sysSettings.Backlight().event;
 			log.Info() << "\t- opening message: ";
-			for (const auto& line : sysSettings.openingMessage)
+			for (const auto& line : sysSettings.OpeningMessage())
 				log.Info() << "\t-\t" << line;
 			emit finished();
 		}
