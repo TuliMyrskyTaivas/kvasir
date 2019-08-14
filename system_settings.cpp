@@ -19,6 +19,7 @@ void SystemSettings::Load(const Scanner& scanner)
 	m_battery = GetBatterySettings(scanner);
 	m_keySettings = GetKeySettings(scanner);
 	m_openingMessage = GetOpeningMessage(scanner);
+	m_autoGainControl = GetAutoGainControl(scanner);
 
 	scanner.ExitProgrammingMode();
 }
@@ -71,6 +72,19 @@ OpeningMessageData SystemSettings::GetOpeningMessage(const Scanner& scanner) con
 		response[1],
 		response[2],
 		response[3]
+	};
+}
+
+//////////////////////////////////////////////////////////////////////////
+AutoGainControlData SystemSettings::GetAutoGainControl(const Scanner& scanner) const
+{	
+	const auto response = scanner.IssueCommand("AGV\r", 7);
+	return AutoGainControlData{
+		std::stoi(response[2]),
+		std::stoi(response[3]),
+		std::stoi(response[4]),
+		std::stoi(response[5]),
+		std::stoi(response[6])
 	};
 }
 

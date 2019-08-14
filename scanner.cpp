@@ -37,7 +37,31 @@ Scanner::~Scanner() = default;
 Scanner::Scanner()
 	: m_impl(std::make_unique<Impl>())
 	, m_inProgrammingMode(false)
-{}
+{	
+}
+
+//////////////////////////////////////////////////////////////////////////
+std::vector<std::string> SplitString(const std::string& str)
+{
+	static std::regex delimiter(",");
+	std::sregex_token_iterator i(str.cbegin(), str.cend(), delimiter, -1);
+	std::sregex_token_iterator end;
+
+	std::vector<std::string> result;
+
+	for (; i != end; ++i)
+	{
+		result.push_back(*i);
+	}
+
+	// Correction for std::sregex_token_iterator behavior
+	if (',' == str.back())
+	{
+		result.emplace_back(std::string{});
+	}
+
+	return result;
+}
 
 //////////////////////////////////////////////////////////////////////////
 QSerialPort::DataBits ToDataBits(const unsigned int bits)
@@ -77,23 +101,6 @@ QSerialPort::StopBits ToStopBits(const unsigned int bits)
 QSerialPort::Parity ToParity(const bool parity)
 {
 	return parity ? QSerialPort::EvenParity : QSerialPort::NoParity;
-}
-
-//////////////////////////////////////////////////////////////////////////
-std::vector<std::string> SplitString(const std::string& str)
-{
-	static std::regex delimiter(",");
-	std::sregex_token_iterator i(str.cbegin(), str.cend(), delimiter, -1);
-	std::sregex_token_iterator end;
-
-	std::vector<std::string> result;
-	if (',' == str.front())
-		result.emplace_back(std::string());
-
-	for (; i != end; ++i)
-		result.push_back(*i);
-
-	return result;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -137,7 +144,7 @@ Scanner::Response Scanner::IssueCommand(const std::string& command, size_t respo
 	QByteArray buf;
 	do
 	{
-		m_impl->port.waitForReadyRead();
+		m_impl->port.waitForReadyRead();		
 		buf += m_impl->port.readAll();
 	} while (buf.back() != '\r');	
 	

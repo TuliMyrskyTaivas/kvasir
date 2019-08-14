@@ -36,6 +36,15 @@ struct KeySettingsData
 	bool keySafe = false;                   // Key Safe status
 };
 
+struct AutoGainControlData
+{
+	int analogResponseTime;                 // -4 : +6
+	int analogReferenceGain;                // -5 : +5
+	int analogGainRange;                    //  0 : 15
+	int digitalResponseTime;                // -8 : +8
+	int gititalReferenceGain;               // -5 : +5
+};
+
 //////////////////////////////////////////////////////////////////////////
 using OpeningMessageData = std::array<std::string, 4>;
 
@@ -49,11 +58,13 @@ class SystemSettings
 	BatteryData m_battery;
 	KeySettingsData m_keySettings;
 	OpeningMessageData m_openingMessage;
+	AutoGainControlData m_autoGainControl;
 
 	BacklightData GetBacklightSettings(const Scanner&) const;
 	BatteryData GetBatterySettings(const Scanner&) const;
 	KeySettingsData GetKeySettings(const Scanner&) const;
 	OpeningMessageData GetOpeningMessage(const Scanner&) const;
+	AutoGainControlData GetAutoGainControl(const Scanner&) const;
 
 public:	
 	~SystemSettings() = default;
