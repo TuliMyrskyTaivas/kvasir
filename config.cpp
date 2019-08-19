@@ -66,7 +66,7 @@ void Config::ReadDevices()
 		const bool parityCheck = query.value(5).toBool();
 		m_devices.emplace_back(Device{ name, port, bauds, dataBits, stopBits, parityCheck });
 	}
-	Logger::GetInstance().Debug() << query.size() << " devices are configured";
+	Logger::GetInstance().Debug() << m_devices.size() << " devices are configured";
 }
 
 } // namespace kvasir

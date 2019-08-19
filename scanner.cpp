@@ -120,6 +120,8 @@ try
 	{
 		throw std::runtime_error(port.errorString().toStdString());
 	}
+
+	Logger::GetInstance().Debug() << "connected to port " << device.port;
 }
 catch (const std::exception& e)
 {
@@ -138,7 +140,7 @@ Scanner::Response Scanner::IssueCommand(const std::string& command, size_t respo
 	// All commands are 3 letters sequences
 	const std::string_view cmdName(command.data(), 3);
 
-	m_impl->port.write(command.c_str());
+	m_impl->port.write(command.c_str());		
 
 	// Wait for the end of data (all responses are finished with '\r')
 	QByteArray buf;
@@ -146,19 +148,32 @@ Scanner::Response Scanner::IssueCommand(const std::string& command, size_t respo
 	{
 		m_impl->port.waitForReadyRead();		
 		buf += m_impl->port.readAll();
-	} while (buf.back() != '\r');	
+	} while (buf.back() != '\r');
+
+	if (Logger::GetInstance().IsVerbose())
+	{
+		Logger::GetInstance().Debug() << "scanner response: "
+			<< std::string(buf.cbegin(), std::prev(buf.cend(), 1));
+	}
 	
 	// Check response format: it should be suffixed with the command's name
 	if (buf.size() < 4 || std::string_view(buf.data(), 3) != cmdName)
-		throw std::runtime_error("invalid " + std::string(cmdName) + " response");
+		throw std::runtime_error("invalid " + std::string(cmdName) + " response: wrong prefix");
 
 	// Build the list of response values
 	const std::string response(std::next(buf.cbegin(), 4), std::prev(buf.cend()));
 	const Response result = SplitString(response);
 	if (responseSize != result.size())
-		throw std::runtime_error("invalid " + std::string(cmdName) + " response: " + response + std::to_string(result.size()));
+		throw std::runtime_error("invalid " + std::string(cmdName) +
+			" response length: " + std::to_string(result.size()));
 
 	return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+bool Scanner::InProgrammingMode() const noexcept
+{
+	return m_inProgrammingMode;
 }
 
 //////////////////////////////////////////////////////////////////////////

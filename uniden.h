@@ -7,6 +7,8 @@
 #ifndef KVASIR_UNIDEN_H_INCLUDED
 #define KVASIR_UNIDEN_H_INCLUDED
 
+#include <string>
+
 namespace kvasir
 {
 
@@ -18,7 +20,8 @@ enum class Modulation
 	FM,
 	NFM,
 	WFM,
-	FMB
+	FMB,
+	Auto
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -196,6 +199,35 @@ struct ReceptionStatus
 	bool squelch = false;                   // Squelch status (open/close)
 	bool mute = false;                      // Mute status (on/off)
 };
+
+enum class SIN : unsigned int
+{
+	// Positions 6-10, 17-21 and 27 are reserved for future use
+	// and must always be empty
+	Type = 0,
+	Name = 1,
+	QuickKey = 2,
+	HoldTime = 3,
+	Lockout = 4,
+	DelayTime = 5,
+	RevIndex = 11,
+	FwdIndex = 12,
+	GrpHead = 13,
+	GrpTail = 14,
+	SeqNumber = 15,
+	StartKey = 16,
+	NumberTag = 22,
+	AgcAnalog = 23,
+	AgcDigital = 24,
+	P25Waiting = 25,
+	Protect = 26
+};
+
+template<typename E>
+constexpr typename std::underlying_type<E>::type Offset(E e)
+{
+	return static_cast<typename std::underlying_type<E>::type>(e);
+}
 
 } // namespace kvasir
 

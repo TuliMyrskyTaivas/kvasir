@@ -7,14 +7,13 @@
 #include "config.h"
 #include "logger.h"
 #include "scanner.h"
-#include "system_settings.h"
+#include "scan_settings.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QTimer>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QCoreApplication>
-#include <QtSerialPort/QSerialPortInfo>
-#include <QtMultimedia/QAudioRecorder>
+#include <QtCore/QCommandLineParser>
 
 #include <iostream>
 #include <cstdlib>
@@ -57,19 +56,16 @@ public slots:
 			log.Info() << "Scanner model: " << scanner.GetModel();
 			log.Info() << "Firmware version: " << scanner.GetFirmwareVersion();
 
-			const auto status = scanner.GetReceptionStatus();
-			log.Info() << "Current channel: " << status.channel;
-
-			kvasir::SystemSettings sysSettings;
-			sysSettings.Load(scanner);
-			log.Info() << "System settings:";
-			log.Info() << "\t- battery save: " << (sysSettings.Battery().batterySave ? "on" : "off");
-			log.Info() << "\t- battery charge time: " << sysSettings.Battery().chargeTime;
-			log.Info() << "\t- backlight color: " << sysSettings.Backlight().color;
-			log.Info() << "\t- backlight event: " << sysSettings.Backlight().event;
-			log.Info() << "\t- opening message: ";
-			for (const auto& line : sysSettings.OpeningMessage())
-				log.Info() << "\t-\t" << line;
+			kvasir::ScanSettings scanSettings;
+			scanSettings.Load(scanner);
+			for (const auto& sys : scanSettings.Systems())
+			{
+				std::visit([&log](auto&& arg)
+				{
+					log.Info() << "System #" << arg.SequenceNumber() << ": " << arg.Name();
+				}, sys);
+				
+			}
 			emit finished();
 		}
 		catch (const std::exception& e)
@@ -109,6 +105,19 @@ int main(int argc, char* argv[])
 		RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
 #endif // _WIN32
 	QCoreApplication app(argc, argv);
+	QCoreApplication::setApplicationName("kvasir");
+	QCoreApplication::setApplicationVersion("0.1");
+
+	QCommandLineOption debug(QStringList() << "d" << "debug",
+		QCoreApplication::translate("main", "Enables debugging output to the console."));
+
+	QCommandLineParser cmdLine;
+	cmdLine.addHelpOption();
+	cmdLine.addVersionOption();		
+	cmdLine.addOption(debug);
+	cmdLine.process(app);
+	if (cmdLine.isSet(debug))
+		kvasir::Logger::GetInstance().EnableConsoleChannel(kvasir::LOG_DEBUG);	
 
 	// Task parented to the application so that it
 	// will be deleted by the application

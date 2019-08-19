@@ -20,15 +20,23 @@ set (CMAKE_AUTORCC ON) # enable RCC automatically for Qt targets
 find_package (Qt5 COMPONENTS Core Gui Multimedia SerialPort Sql REQUIRED)
 
 set (SOURCES
+    channel.h
+    channel.cpp
     config.h
-    config.cpp    
+    config.cpp 
+    group.h
+    group.cpp   
     logger.h
     logger.cpp
     main.cpp
 	scanner.h
     scanner.cpp
+    scan_settings.h
+    scan_settings.cpp
 	system_settings.h
 	system_settings.cpp
+	system.h
+	system.cpp
     uniden.h
 )
 

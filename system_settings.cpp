@@ -6,12 +6,14 @@
 
 #include "system_settings.h"
 #include "scanner.h"
+#include "logger.h"
 
 namespace kvasir
 {
 
 //////////////////////////////////////////////////////////////////////////
 void SystemSettings::Load(const Scanner& scanner)	
+try
 {
 	scanner.EnterProgrammingMode();
 
@@ -22,6 +24,12 @@ void SystemSettings::Load(const Scanner& scanner)
 	m_autoGainControl = GetAutoGainControl(scanner);
 
 	scanner.ExitProgrammingMode();
+}
+catch (const std::exception& e)
+{
+	Logger::GetInstance().Error() << "failed to load system settings: " << e.what();
+	scanner.ExitProgrammingMode();
+	throw e;
 }
 
 //////////////////////////////////////////////////////////////////////////

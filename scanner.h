@@ -33,6 +33,7 @@ public:
 	void Disconnect();
 
 	Response IssueCommand(const std::string& command, size_t responseSize) const;
+	bool InProgrammingMode() const noexcept;
 	void EnterProgrammingMode() const;
 	void ExitProgrammingMode() const;
 

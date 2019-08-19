@@ -64,7 +64,7 @@ class SystemSettings
 	BatteryData GetBatterySettings(const Scanner&) const;
 	KeySettingsData GetKeySettings(const Scanner&) const;
 	OpeningMessageData GetOpeningMessage(const Scanner&) const;
-	AutoGainControlData GetAutoGainControl(const Scanner&) const;
+	AutoGainControlData GetAutoGainControl(const Scanner&) const;	
 
 public:	
 	~SystemSettings() = default;
